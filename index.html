@@ -1,378 +1,560 @@
-import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Slow Moving Inventory Dashboard</title>
+  <!-- Tailwind CSS (v2.2.19) -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    rel="stylesheet"
+  />
+</head>
+<body class="bg-gray-50">
+  <!-- Root element where React will render the dashboard -->
+  <div id="root"></div>
 
-// Sample data from the reports - normally we'd fetch this from the CSV
-const flamencoData = {
-  name: "Flamenco",
-  totalValue: 1160820.55,
-  tobaccoValue: 28654.50,
-  beverageValue: 1160820.55 - 28654.50,
-  itemCount: 116
-};
+  <!-- React, ReactDOM, and Recharts (UMD builds from CDNs) -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"
+    crossorigin
+  ></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"
+    crossorigin
+  ></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/recharts/umd/Recharts.min.js"
+    crossorigin
+  ></script>
 
-const escapeData = {
-  name: "Escape",
-  totalValue: 497623.83,
-  tobaccoValue: 25706.25, 
-  beverageValue: 497623.83 - 25706.25,
-  itemCount: 83
-};
+  <script>
+    // Pull React hooks and Recharts components from the global objects
+    const { useState } = React;
+    const {
+      BarChart,
+      Bar,
+      XAxis,
+      YAxis,
+      CartesianGrid,
+      Tooltip,
+      Legend,
+      ResponsiveContainer,
+      PieChart,
+      Pie,
+      Cell
+    } = Recharts;
 
-// Top categories extracted from the documents
-const topCategories = [
-  { name: "TEQUILA & MEZCAL", value: 317724.00 },
-  { name: "WHITE WINE", value: 281508.00 },
-  { name: "RED WINE", value: 268544.89 },
-  { name: "CHAMPAGNE", value: 228358.00 },
-  { name: "WHISKY", value: 167476.05 },
-  { name: "SPARKLING AND PROSECCO", value: 108023.84 },
-  { name: "VODKA", value: 25167.42 },
-  { name: "COGNAG", value: 63748.29 },
-  { name: "GIN", value: 24931.75 },
-  { name: "CIGAR OTHER", value: 28654.50 }
-];
+    // Sample data from the reports - normally we'd fetch this from a CSV
+    const flamencoData = {
+      name: "Flamenco",
+      totalValue: 1160820.55,
+      tobaccoValue: 28654.50,
+      beverageValue: 1160820.55 - 28654.50,
+      itemCount: 116
+    };
 
-// Top expensive items from both locations (expanded to 50 items)
-const expensiveItems = [
-  { name: "Clase Azul Tequila Ultra 75 cl", location: "Flamenco", value: 128000.00, quantity: 1.00 },
-  { name: "Clase Azul Tequila Anejo 75 cl", location: "Escape", value: 44500.00, quantity: 1.00 },
-  { name: "Armand de Brignac", location: "Flamenco", value: 65828.00, quantity: 4.00 },
-  { name: "Armand de Brignac", location: "Escape", value: 71190.00, quantity: 6.00 },
-  { name: "The Macallan Double Cask 12 Yrs.", location: "Escape", value: 39927.20, quantity: 8.89 },
-  { name: "818 Eight Reserve 75 cl", location: "Flamenco", value: 72204.00, quantity: 6.00 },
-  { name: "Moet & Chandon – Rose", location: "Flamenco", value: 72162.00, quantity: 19.00 },
-  { name: "Clase Azul Aniversaro 25 yrs.", location: "Flamenco", value: 60400.00, quantity: 1.00 },
-  { name: "Dom Perignon 2009", location: "Escape", value: 20078.00, quantity: 2.00 },
-  { name: "Lamborghini D.O.C.G. Prosecco", location: "Flamenco", value: 38720.00, quantity: 11.00 },
-  { name: "Lamborghini 2013 'Campoleone' IGT", location: "Flamenco", value: 23700.00, quantity: 6.00 },
-  { name: "Lamborghini 2013 'Trescone Rosso' IGT", location: "Flamenco", value: 25300.00, quantity: 10.00 },
-  { name: "Martini Brut", location: "Flamenco", value: 23332.00, quantity: 38.00 },
-  { name: "CHÂTEAU GRAND PUY LACOSTE 2005/2009", location: "Flamenco", value: 25500.00, quantity: 3.00 },
-  { name: "La Poderina Brunello di Montalcino DOCG 2017", location: "Escape", value: 12600.00, quantity: 7.00 },
-  { name: "Remy Martin X.O. Alc. 40% 70 cl", location: "Flamenco", value: 27900.00, quantity: 3.00 },
-  { name: "anCnoc 24 Yrs. Highland Single Malt", location: "Flamenco", value: 12947.54, quantity: 1.70 },
-  { name: "Suntory Hakushu Single Malt", location: "Flamenco", value: 14400.00, quantity: 3.00 },
-  { name: "Hine Antique XO Alc. 40% 70 cl", location: "Flamenco", value: 15598.29, quantity: 1.93 },
-  { name: "Vulcano Lava Aglianico Beneventano IGT 2020", location: "Escape", value: 11400.00, quantity: 6.00 },
-  { name: "BRUNELLO DI MONTALCINO 2012", location: "Flamenco", value: 11900.00, quantity: 4.00 },
-  { name: "RISE 'GSM' GREENOCK 2007", location: "Flamenco", value: 11200.00, quantity: 4.00 },
-  { name: "Martell X.O. Alc. 40% 70 cl", location: "Escape", value: 17850.00, quantity: 2.00 },
-  { name: "Rival Mangosteen Sparkling Fusion", location: "Flamenco", value: 12616.82, quantity: 30.00 },
-  { name: "Rival Thai Coconut Sparkling Fusion", location: "Flamenco", value: 10514.02, quantity: 25.00 },
-  { name: "Lamborghini Spumante - Treviso Prosecco", location: "Flamenco", value: 10560.00, quantity: 3.00 },
-  { name: "CHÂTEAUNUEF DU PAPE 2003", location: "Flamenco", value: 10500.00, quantity: 3.00 },
-  { name: "Grey Goose 1.75 L", location: "Flamenco", value: 8600.00, quantity: 2.00 },
-  { name: "Suntory the finest old whisky 70 cl", location: "Escape", value: 10700.91, quantity: 2.43 },
-  { name: "Short Story Dry Gin 75 cl", location: "Flamenco", value: 8280.00, quantity: 12.00 },
-  { name: "The Macallan Double Cask 15 Yrs.", location: "Flamenco", value: 8370.00, quantity: 1.00 },
-  { name: "PALEO BIANCO 2011", location: "Flamenco", value: 8800.00, quantity: 4.00 },
-  { name: "CHARDONNAY 'LIDIA' 2015", location: "Flamenco", value: 8800.00, quantity: 5.00 },
-  { name: "Les Hauts-Conseillants Lalande-de-Pomerol 2013", location: "Escape", value: 8100.00, quantity: 6.00 },
-  { name: "Le Dix de Los Vas Cos", location: "Flamenco", value: 8100.00, quantity: 3.00 },
-  { name: "Lamborghini 2013 'Centanni Grechetto' IGT", location: "Flamenco", value: 8240.00, quantity: 4.00 },
-  { name: "Lamborghini 2016 'Centanni Rosso' IGT", location: "Flamenco", value: 8240.00, quantity: 4.00 },
-  { name: "Caro 2015- Bodegas Caro", location: "Flamenco", value: 14400.00, quantity: 4.00 },
-  { name: "Moet & Chandon - Brut - Mini 200 ml.", location: "Flamenco", value: 8680.00, quantity: 14.00 },
-  { name: "Lamborghini 2012 'Torami Rosso' IGT", location: "Flamenco", value: 9570.00, quantity: 3.00 },
-  { name: "CARMENÈRE PURPLE ANGEL 2015", location: "Flamenco", value: 9600.00, quantity: 4.00 },
-  { name: "CHASSAGNE MONTRACHET BLANC 2016", location: "Flamenco", value: 9020.00, quantity: 4.00 },
-  { name: "Cinzano -Prosecco Italy", location: "Escape", value: 11050.00, quantity: 17.00 },
-  { name: "Douglas Laing's Timorous Beastie", location: "Flamenco", value: 7840.00, quantity: 2.00 },
-  { name: "Douglas Laing's Epicurean Lowland", location: "Flamenco", value: 7680.00, quantity: 2.00 },
-  { name: "RIOJA RESERVA 2014 - MARQUES DE RISCAL", location: "Flamenco", value: 7200.00, quantity: 4.00 },
-  { name: "CAPE MENTELLE Cabernet Merlot", location: "Flamenco", value: 7440.00, quantity: 12.00 },
-  { name: "Lamborghini 2012 'Era Rosso' IGT", location: "Flamenco", value: 7590.00, quantity: 3.00 },
-  { name: "Compass Box Orangerie Infusion", location: "Escape", value: 7840.00, quantity: 2.00 },
-  { name: "Jermann Sauvignon 2021", location: "Escape", value: 7440.00, quantity: 6.00 }
-];
+    const escapeData = {
+      name: "Escape",
+      totalValue: 497623.83,
+      tobaccoValue: 25706.25,
+      beverageValue: 497623.83 - 25706.25,
+      itemCount: 83
+    };
 
-// COLORS
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
+    // Top categories
+    const topCategories = [
+      { name: "TEQUILA & MEZCAL", value: 317724.00 },
+      { name: "WHITE WINE", value: 281508.00 },
+      { name: "RED WINE", value: 268544.89 },
+      { name: "CHAMPAGNE", value: 228358.00 },
+      { name: "WHISKY", value: 167476.05 },
+      { name: "SPARKLING AND PROSECCO", value: 108023.84 },
+      { name: "VODKA", value: 25167.42 },
+      { name: "COGNAG", value: 63748.29 },
+      { name: "GIN", value: 24931.75 },
+      { name: "CIGAR OTHER", value: 28654.50 }
+    ];
 
-const InventoryDashboard = () => {
-  const [activeTab, setActiveTab] = useState('summary');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('all');
-  const [sortBy, setSortBy] = useState('value');
-  
-  // Combined data for comparison
-  const locationData = [flamencoData, escapeData];
-  const totalInventory = flamencoData.totalValue + escapeData.totalValue;
-  
-  // Beverage vs Tobacco breakdown
-  const typeBreakdown = [
-    { name: 'Beverage', value: flamencoData.beverageValue + escapeData.beverageValue },
-    { name: 'Tobacco', value: flamencoData.tobaccoValue + escapeData.tobaccoValue }
-  ];
-  
-  // Filter expensive items by location if needed
-  const filteredExpensiveItems = selectedLocation === 'all' 
-    ? expensiveItems 
-    : expensiveItems.filter(item => item.location.toLowerCase() === selectedLocation.toLowerCase());
-  
-  // Breakdown for bar chart
-  const locationBreakdown = [
-    { 
-      name: 'Flamenco',
-      beverage: flamencoData.beverageValue,
-      tobacco: flamencoData.tobaccoValue,
-      total: flamencoData.totalValue
-    },
-    {
-      name: 'Escape',
-      beverage: escapeData.beverageValue,
-      tobacco: escapeData.tobaccoValue,
-      total: escapeData.totalValue
-    }
-  ];
-  
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(value);
-  };
-  
-  return (
-    <div className="bg-gray-50 min-h-screen p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Slow Moving Inventory Dashboard</h1>
-        <h2 className="text-xl text-gray-600 mb-8">February 2025 Analysis</h2>
-        
-        {/* Location Filter */}
-        <div className="mb-6 flex items-center gap-4">
-          <span className="font-medium">Location:</span>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => setSelectedLocation('all')}
-              className={`px-4 py-2 rounded-lg ${selectedLocation === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            >
-              All Locations
-            </button>
-            <button 
-              onClick={() => setSelectedLocation('flamenco')}
-              className={`px-4 py-2 rounded-lg ${selectedLocation === 'flamenco' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            >
-              Flamenco
-            </button>
-            <button 
-              onClick={() => setSelectedLocation('escape')}
-              className={`px-4 py-2 rounded-lg ${selectedLocation === 'escape' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-            >
-              Escape
-            </button>
-          </div>
-        </div>
-        
-        {/* Navigation Tabs */}
-        <div className="mb-8 border-b border-gray-200">
-          <nav className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('summary')}
-              className={`py-4 px-1 font-medium text-sm border-b-2 ${activeTab === 'summary' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-            >
-              Summary
-            </button>
-            <button
-              onClick={() => setActiveTab('categories')}
-              className={`py-4 px-1 font-medium text-sm border-b-2 ${activeTab === 'categories' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-            >
-              Categories
-            </button>
-            <button
-              onClick={() => setActiveTab('topItems')}
-              className={`py-4 px-1 font-medium text-sm border-b-2 ${activeTab === 'topItems' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-            >
-              Top Items
-            </button>
-          </nav>
-        </div>
-        
-        {/* Summary Tab */}
-        {activeTab === 'summary' && (
-          <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Total Slow Moving Inventory</h3>
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalInventory)}</p>
-                    <p className="text-sm text-gray-500">Total Value</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-semibold">{flamencoData.itemCount + escapeData.itemCount}</p>
-                    <p className="text-sm text-gray-500">Total Items</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Inventory by Location</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <p className="text-lg font-medium text-blue-500">Flamenco</p>
-                    <p className="text-2xl font-bold">{formatCurrency(flamencoData.totalValue)}</p>
-                    <p className="text-sm text-gray-500">{flamencoData.itemCount} items</p>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <p className="text-lg font-medium text-green-500">Escape</p>
-                    <p className="text-2xl font-bold">{formatCurrency(escapeData.totalValue)}</p>
-                    <p className="text-sm text-gray-500">{escapeData.itemCount} items</p>
-                  </div>
-                </div>
+    // Top expensive items
+    const expensiveItems = [
+      { name: "Clase Azul Tequila Ultra 75 cl", location: "Flamenco", value: 128000.00, quantity: 1.00 },
+      { name: "Clase Azul Tequila Anejo 75 cl", location: "Escape", value: 44500.00, quantity: 1.00 },
+      { name: "Armand de Brignac", location: "Flamenco", value: 65828.00, quantity: 4.00 },
+      { name: "Armand de Brignac", location: "Escape", value: 71190.00, quantity: 6.00 },
+      { name: "The Macallan Double Cask 12 Yrs.", location: "Escape", value: 39927.20, quantity: 8.89 },
+      { name: "818 Eight Reserve 75 cl", location: "Flamenco", value: 72204.00, quantity: 6.00 },
+      { name: "Moet & Chandon – Rose", location: "Flamenco", value: 72162.00, quantity: 19.00 },
+      { name: "Clase Azul Aniversaro 25 yrs.", location: "Flamenco", value: 60400.00, quantity: 1.00 },
+      { name: "Dom Perignon 2009", location: "Escape", value: 20078.00, quantity: 2.00 },
+      { name: "Lamborghini D.O.C.G. Prosecco", location: "Flamenco", value: 38720.00, quantity: 11.00 },
+      { name: "Lamborghini 2013 'Campoleone' IGT", location: "Flamenco", value: 23700.00, quantity: 6.00 },
+      { name: "Lamborghini 2013 'Trescone Rosso' IGT", location: "Flamenco", value: 25300.00, quantity: 10.00 },
+      { name: "Martini Brut", location: "Flamenco", value: 23332.00, quantity: 38.00 },
+      { name: "CHÂTEAU GRAND PUY LACOSTE 2005/2009", location: "Flamenco", value: 25500.00, quantity: 3.00 },
+      { name: "La Poderina Brunello di Montalcino DOCG 2017", location: "Escape", value: 12600.00, quantity: 7.00 },
+      { name: "Remy Martin X.O. Alc. 40% 70 cl", location: "Flamenco", value: 27900.00, quantity: 3.00 },
+      { name: "anCnoc 24 Yrs. Highland Single Malt", location: "Flamenco", value: 12947.54, quantity: 1.70 },
+      { name: "Suntory Hakushu Single Malt", location: "Flamenco", value: 14400.00, quantity: 3.00 },
+      { name: "Hine Antique XO Alc. 40% 70 cl", location: "Flamenco", value: 15598.29, quantity: 1.93 },
+      { name: "Vulcano Lava Aglianico Beneventano IGT 2020", location: "Escape", value: 11400.00, quantity: 6.00 },
+      { name: "BRUNELLO DI MONTALCINO 2012", location: "Flamenco", value: 11900.00, quantity: 4.00 },
+      { name: "RISE 'GSM' GREENOCK 2007", location: "Flamenco", value: 11200.00, quantity: 4.00 },
+      { name: "Martell X.O. Alc. 40% 70 cl", location: "Escape", value: 17850.00, quantity: 2.00 },
+      { name: "Rival Mangosteen Sparkling Fusion", location: "Flamenco", value: 12616.82, quantity: 30.00 },
+      { name: "Rival Thai Coconut Sparkling Fusion", location: "Flamenco", value: 10514.02, quantity: 25.00 },
+      { name: "Lamborghini Spumante - Treviso Prosecco", location: "Flamenco", value: 10560.00, quantity: 3.00 },
+      { name: "CHÂTEAUNUEF DU PAPE 2003", location: "Flamenco", value: 10500.00, quantity: 3.00 },
+      { name: "Grey Goose 1.75 L", location: "Flamenco", value: 8600.00, quantity: 2.00 },
+      { name: "Suntory the finest old whisky 70 cl", location: "Escape", value: 10700.91, quantity: 2.43 },
+      { name: "Short Story Dry Gin 75 cl", location: "Flamenco", value: 8280.00, quantity: 12.00 },
+      { name: "The Macallan Double Cask 15 Yrs.", location: "Flamenco", value: 8370.00, quantity: 1.00 },
+      { name: "PALEO BIANCO 2011", location: "Flamenco", value: 8800.00, quantity: 4.00 },
+      { name: "CHARDONNAY 'LIDIA' 2015", location: "Flamenco", value: 8800.00, quantity: 5.00 },
+      { name: "Les Hauts-Conseillants Lalande-de-Pomerol 2013", location: "Escape", value: 8100.00, quantity: 6.00 },
+      { name: "Le Dix de Los Vas Cos", location: "Flamenco", value: 8100.00, quantity: 3.00 },
+      { name: "Lamborghini 2013 'Centanni Grechetto' IGT", location: "Flamenco", value: 8240.00, quantity: 4.00 },
+      { name: "Lamborghini 2016 'Centanni Rosso' IGT", location: "Flamenco", value: 8240.00, quantity: 4.00 },
+      { name: "Caro 2015- Bodegas Caro", location: "Flamenco", value: 14400.00, quantity: 4.00 },
+      { name: "Moet & Chandon - Brut - Mini 200 ml.", location: "Flamenco", value: 8680.00, quantity: 14.00 },
+      { name: "Lamborghini 2012 'Torami Rosso' IGT", location: "Flamenco", value: 9570.00, quantity: 3.00 },
+      { name: "CARMENÈRE PURPLE ANGEL 2015", location: "Flamenco", value: 9600.00, quantity: 4.00 },
+      { name: "CHASSAGNE MONTRACHET BLANC 2016", location: "Flamenco", value: 9020.00, quantity: 4.00 },
+      { name: "Cinzano -Prosecco Italy", location: "Escape", value: 11050.00, quantity: 17.00 },
+      { name: "Douglas Laing's Timorous Beastie", location: "Flamenco", value: 7840.00, quantity: 2.00 },
+      { name: "Douglas Laing's Epicurean Lowland", location: "Flamenco", value: 7680.00, quantity: 2.00 },
+      { name: "RIOJA RESERVA 2014 - MARQUES DE RISCAL", location: "Flamenco", value: 7200.00, quantity: 4.00 },
+      { name: "CAPE MENTELLE Cabernet Merlot", location: "Flamenco", value: 7440.00, quantity: 12.00 },
+      { name: "Lamborghini 2012 'Era Rosso' IGT", location: "Flamenco", value: 7590.00, quantity: 3.00 },
+      { name: "Compass Box Orangerie Infusion", location: "Escape", value: 7840.00, quantity: 2.00 },
+      { name: "Jermann Sauvignon 2021", location: "Escape", value: 7440.00, quantity: 6.00 }
+    ];
+
+    const COLORS = [
+      "#0088FE",
+      "#00C49F",
+      "#FFBB28",
+      "#FF8042",
+      "#8884d8",
+      "#82ca9d",
+      "#ffc658",
+      "#8dd1e1",
+      "#a4de6c",
+      "#d0ed57"
+    ];
+
+    function InventoryDashboard() {
+      const [activeTab, setActiveTab] = useState('summary');
+      const [searchTerm, setSearchTerm] = useState('');
+      const [selectedLocation, setSelectedLocation] = useState('all');
+      const [sortBy, setSortBy] = useState('value');
+
+      // Combined data for comparison
+      const locationData = [flamencoData, escapeData];
+      const totalInventory = flamencoData.totalValue + escapeData.totalValue;
+
+      // Beverage vs Tobacco breakdown
+      const typeBreakdown = [
+        {
+          name: 'Beverage',
+          value: flamencoData.beverageValue + escapeData.beverageValue
+        },
+        {
+          name: 'Tobacco',
+          value: flamencoData.tobaccoValue + escapeData.tobaccoValue
+        }
+      ];
+
+      // Filter expensive items by location if needed
+      const filteredExpensiveItems =
+        selectedLocation === 'all'
+          ? expensiveItems
+          : expensiveItems.filter(
+              (item) => item.location.toLowerCase() === selectedLocation.toLowerCase()
+            );
+
+      // Breakdown for bar chart
+      const locationBreakdown = [
+        {
+          name: 'Flamenco',
+          beverage: flamencoData.beverageValue,
+          tobacco: flamencoData.tobaccoValue,
+          total: flamencoData.totalValue
+        },
+        {
+          name: 'Escape',
+          beverage: escapeData.beverageValue,
+          tobacco: escapeData.tobaccoValue,
+          total: escapeData.totalValue
+        }
+      ];
+
+      const formatCurrency = (value) => {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2
+        }).format(value);
+      };
+
+      return (
+        <div className="bg-gray-50 min-h-screen p-6">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">
+              Slow Moving Inventory Dashboard
+            </h1>
+            <h2 className="text-xl text-gray-600 mb-8">February 2025 Analysis</h2>
+
+            {/* Location Filter */}
+            <div className="mb-6 flex items-center gap-4">
+              <span className="font-medium">Location:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedLocation('all')}
+                  className={`px-4 py-2 rounded-lg ${
+                    selectedLocation === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200'
+                  }`}
+                >
+                  All Locations
+                </button>
+                <button
+                  onClick={() => setSelectedLocation('flamenco')}
+                  className={`px-4 py-2 rounded-lg ${
+                    selectedLocation === 'flamenco'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200'
+                  }`}
+                >
+                  Flamenco
+                </button>
+                <button
+                  onClick={() => setSelectedLocation('escape')}
+                  className={`px-4 py-2 rounded-lg ${
+                    selectedLocation === 'escape'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200'
+                  }`}
+                >
+                  Escape
+                </button>
               </div>
             </div>
-            
-            {/* Charts for Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Location Comparison</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={locationBreakdown}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Legend />
-                      <Bar dataKey="beverage" name="Beverage" fill="#8884d8" />
-                      <Bar dataKey="tobacco" name="Tobacco" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
+
+            {/* Navigation Tabs */}
+            <div className="mb-8 border-b border-gray-200">
+              <nav className="flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('summary')}
+                  className={`py-4 px-1 font-medium text-sm border-b-2 ${
+                    activeTab === 'summary'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Summary
+                </button>
+                <button
+                  onClick={() => setActiveTab('categories')}
+                  className={`py-4 px-1 font-medium text-sm border-b-2 ${
+                    activeTab === 'categories'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Categories
+                </button>
+                <button
+                  onClick={() => setActiveTab('topItems')}
+                  className={`py-4 px-1 font-medium text-sm border-b-2 ${
+                    activeTab === 'topItems'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Top Items
+                </button>
+              </nav>
+            </div>
+
+            {/* Summary Tab */}
+            {activeTab === 'summary' && (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Total Slow Moving Inventory
+                    </h3>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-3xl font-bold text-blue-600">
+                          {formatCurrency(totalInventory)}
+                        </p>
+                        <p className="text-sm text-gray-500">Total Value</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-semibold">
+                          {flamencoData.itemCount + escapeData.itemCount}
+                        </p>
+                        <p className="text-sm text-gray-500">Total Items</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Inventory by Location
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 bg-blue-50 rounded-lg">
+                        <p className="text-lg font-medium text-blue-500">Flamenco</p>
+                        <p className="text-2xl font-bold">
+                          {formatCurrency(flamencoData.totalValue)}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {flamencoData.itemCount} items
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-green-50 rounded-lg">
+                        <p className="text-lg font-medium text-green-500">Escape</p>
+                        <p className="text-2xl font-bold">
+                          {formatCurrency(escapeData.totalValue)}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {escapeData.itemCount} items
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Charts for Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Location Comparison
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={locationBreakdown}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                          <Legend />
+                          <Bar dataKey="beverage" name="Beverage" fill="#8884d8" />
+                          <Bar dataKey="tobacco" name="Tobacco" fill="#82ca9d" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Beverage vs Tobacco
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={typeBreakdown}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({ name, percent }) =>
+                              `${name} ${(percent * 100).toFixed(0)}%`
+                            }
+                          >
+                            {typeBreakdown.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Beverage vs Tobacco</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={typeBreakdown}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+            )}
+
+            {/* Categories Tab */}
+            {activeTab === 'categories' && (
+              <div>
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Top Product Categories by Value
+                  </h3>
+                  <div className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={topCategories}
+                        layout="vertical"
+                        margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
                       >
-                        {typeBreakdown.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(value)} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="name" />
+                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                        <Bar dataKey="value" fill="#8884d8">
+                          {topCategories.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Categories Tab */}
-        {activeTab === 'categories' && (
-          <div>
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Top Product Categories by Value</h3>
-              <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={topCategories}
-                    layout="vertical"
-                    margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="name" />
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Bar dataKey="value" fill="#8884d8">
-                      {topCategories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Top Items Tab */}
-        {activeTab === 'topItems' && (
-          <div>
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Most Valuable Slow Moving Items</h3>
-                <div className="flex items-center gap-4">
-                  <span>Sort by:</span>
-                  <select 
-                    className="px-3 py-2 border border-gray-300 rounded-md"
-                    onChange={(e) => setSortBy(e.target.value)}
-                    value={sortBy}
-                  >
-                    <option value="value">Total Value</option>
-                    <option value="valuePerUnit">Value per Unit</option>
-                    <option value="quantity">Quantity</option>
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Search items..."
-                    className="px-3 py-2 border border-gray-300 rounded-md"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty in Stock</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value per Unit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredExpensiveItems
-                      .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .sort((a, b) => {
-                        if (sortBy === 'value') return b.value - a.value;
-                        if (sortBy === 'valuePerUnit') return (b.value / b.quantity) - (a.value / a.quantity);
-                        if (sortBy === 'quantity') return b.quantity - a.quantity;
-                        return 0;
-                      })
-                      .map((item, index) => (
-                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{index + 1}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.location}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity.toFixed(2)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(item.value)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(item.value / item.quantity)}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="mt-6 flex justify-between items-center text-sm text-gray-600">
-                <p>Showing up to 50 most valuable slow-moving inventory items</p>
-                <p>Total items: {filteredExpensiveItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase())).length}</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+            )}
 
-export default InventoryDashboard;
+            {/* Top Items Tab */}
+            {activeTab === 'topItems' && (
+              <div>
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Most Valuable Slow Moving Items
+                    </h3>
+                    <div className="flex items-center gap-4">
+                      <span>Sort by:</span>
+                      <select
+                        className="px-3 py-2 border border-gray-300 rounded-md"
+                        onChange={(e) => setSortBy(e.target.value)}
+                        value={sortBy}
+                      >
+                        <option value="value">Total Value</option>
+                        <option value="valuePerUnit">Value per Unit</option>
+                        <option value="quantity">Quantity</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Search items..."
+                        className="px-3 py-2 border border-gray-300 rounded-md"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Rank
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Item
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Location
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Qty in Stock
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Value
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Value per Unit
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredExpensiveItems
+                          .filter((item) =>
+                            item.name.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                          .sort((a, b) => {
+                            if (sortBy === 'value') return b.value - a.value;
+                            if (sortBy === 'valuePerUnit')
+                              return b.value / b.quantity - a.value / a.quantity;
+                            if (sortBy === 'quantity') return b.quantity - a.quantity;
+                            return 0;
+                          })
+                          .map((item, index) => (
+                            <tr
+                              key={index}
+                              className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                            >
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+                                {index + 1}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {item.name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.location}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.quantity.toFixed(2)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {formatCurrency(item.value)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {formatCurrency(item.value / item.quantity)}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-6 flex justify-between items-center text-sm text-gray-600">
+                    <p>Showing up to 50 most valuable slow-moving inventory items</p>
+                    <p>
+                      Total items:{' '}
+                      {
+                        filteredExpensiveItems.filter((item) =>
+                          item.name.toLowerCase().includes(searchTerm.toLowerCase())
+                        ).length
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Render the component into #root
+    ReactDOM.render(
+      React.createElement(InventoryDashboard),
+      document.getElementById('root')
+    );
+  </script>
+</body>
+</html>
